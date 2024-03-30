@@ -11,7 +11,7 @@ from openai import (
     AssistantEventHandler
     )
 
-client = OpenAI()
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def render_custom_css() -> None:
     """
