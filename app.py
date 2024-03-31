@@ -5,8 +5,9 @@ import streamlit as st
 from openai import OpenAI
 from utils import (
     EventHandler, 
-    guardrail_flag,
-    is_not_question,
+    moderation_endpoint,
+    is_nsfw,
+    # is_not_question,
     render_custom_css
     )
 
@@ -82,13 +83,8 @@ if st.session_state["file_uploaded"]:
         qn_btn.empty()
         check_box.empty()
 
-        if guardrail_flag(question):
-            st.warning("Your question has been flagged.")
-            client.beta.threads.delete(st.session_state.thread_id)
-            st.stop()
-
-        if is_not_question(question):
-            st.warning("Please ask a question.")
+        if moderation_endpoint(question) or is_nsfw(question):
+            st.warning("Your question has been flagged. Refresh page to try again.")
             client.beta.threads.delete(st.session_state.thread_id)
             st.stop()
 

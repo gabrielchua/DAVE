@@ -320,7 +320,7 @@ pyrightconfig.json
 *.pdf
 *.png
 
-demo/*
+demo_screenshots/*
 
 bin/
 share/
