@@ -85,7 +85,7 @@ class EventHandler(AssistantEventHandler):
         # Retrieve the newly created text box and empty it
         st.session_state.text_boxes[-1].empty()
         # Insert the text into the last element in assistant text list
-        st.session_state.assistant_text[-1] += "**> 🕵️ Dave:** \n\n "
+        st.session_state.assistant_text[-1] += "**> 🕵️ DAVE:** \n\n "
         # Display the text in the newly created text box
         st.session_state.text_boxes[-1].info("".join(st.session_state["assistant_text"][-1]))
       

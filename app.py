@@ -1,6 +1,8 @@
 """
 app.py
 """
+import time
+
 import streamlit as st
 from openai import OpenAI
 from utils import (
@@ -73,6 +75,7 @@ if not st.session_state["file_uploaded"]:
         st.session_state["file_uploaded"] = True
         file_upload_box.empty()
         upload_btn.empty()
+        time.sleep(2)
         st.rerun()
 
 if st.session_state["file_uploaded"]:
