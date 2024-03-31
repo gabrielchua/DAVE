@@ -50,27 +50,27 @@ if "disabled" not in st.session_state:
 
 # UI
 st.subheader("DAVE: Data Analysis & Visualisation Engine")
+upload_btn = st.empty()
 text_box = st.empty()
 check_box = st.empty()
 qn_btn = st.empty()
 
 # File Upload
-if (st.session_state["file_uploaded"] is None) and (st.session_state["file_uploaded"]):
+if (st.session_state["file"] is not None) and (not st.session_state["file_uploaded"]):
     st.session_state["file"] = st.file_uploader("Please upload your dataset.", type=["csv", "xlsx", "xls"])
 
-# File Upload
-if (st.session_state["file"] is not None) and (not st.session_state["file_uploaded"]):
+    if upload_btn.button("Upload"):
+        # Upload the file
+        file = client.files.create(
+            file=st.session_state["file"],
+            purpose='assistants'
+        )
 
-    # Upload the file
-    file = client.files.create(
-        file=st.session_state["file"],
-        purpose='assistants'
-    )
+        st.session_state["file_id"] = file.id
 
-    st.session_state["file_id"] = file.id
-
-    st.toast("File uploaded successfully", icon="✨")
-    st.session_state["file_uploaded"] = True
+        st.toast("File uploaded successfully", icon="✨")
+        st.session_state["file_uploaded"] = True
+        upload_btn.empty()
 
 
 if st.session_state["file_uploaded"]:
