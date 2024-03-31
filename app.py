@@ -28,6 +28,9 @@ if "thread_id" not in st.session_state:
     print(st.session_state.thread_id)
 
 # Initialise session state variables
+if "file" not in st.session_state:
+    st.session_state.file = None
+
 if "file_uploaded" not in st.session_state:
     st.session_state.file_uploaded = False
 
@@ -43,6 +46,8 @@ if "code_output" not in st.session_state:
 if "disabled" not in st.session_state:
     st.session_state.disabled = False
 
+
+
 # UI
 st.subheader("DAVE: Data Analysis & Visualisation Engine")
 text_box = st.empty()
@@ -50,7 +55,7 @@ check_box = st.empty()
 qn_btn = st.empty()
 
 # File Upload
-if (st.session_state["file_uploaded"] is False) and (st.session_state["file_uploaded"]):
+if (st.session_state["file_uploaded"] is None) and (st.session_state["file_uploaded"]):
     st.session_state["file"] = st.file_uploader("Please upload your dataset.", type=["csv", "xlsx", "xls"])
 
 # File Upload
