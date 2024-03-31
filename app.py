@@ -80,7 +80,7 @@ if not st.session_state["file_uploaded"]:
 
 if st.session_state["file_uploaded"]:
     question = text_box.text_input("Ask a question", disabled=st.session_state.disabled)
-    include_charts = check_box.checkbox("Create relevant graphs?")
+    include_charts = check_box.checkbox("Include relevant graphs")
     if qn_btn.button("Ask DAVE"):
 
         text_box.empty()
