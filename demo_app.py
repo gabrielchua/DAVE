@@ -44,7 +44,7 @@ if "disabled" not in st.session_state:
 
 # UI
 st.subheader("DAVE: Data Analysis & Visualisation Engine")
-st.markdown("This demo preloads a dataset on HDB resale prices from Jan 2017 onwards.", help="[Source](https://beta.data.gov.sg/collections/189/datasets/d_ebc5ab87086db484f88045b47411ebc5/view)")
+st.markdown("This demo uses a data.gov.sg dataset on HDB resale prices.", help="[Source](https://beta.data.gov.sg/collections/189/datasets/d_ebc5ab87086db484f88045b47411ebc5/view)")
 text_box = st.empty()
 qn_btn = st.empty()
 
