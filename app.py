@@ -50,6 +50,7 @@ if "disabled" not in st.session_state:
 
 # UI
 st.subheader("DAVE: Data Analysis & Visualisation Engine")
+file_upload_box = st.empty()
 upload_btn = st.empty()
 text_box = st.empty()
 check_box = st.empty()
@@ -57,7 +58,7 @@ qn_btn = st.empty()
 
 # File Upload
 if (st.session_state["file"] is None) and (not st.session_state["file_uploaded"]):
-    st.session_state["file"] = st.file_uploader("Please upload your dataset.", type=["csv", "xlsx", "xls"])
+    st.session_state["file"] = file_upload_box.file_uploader("Please upload your dataset.", type=["csv", "xlsx", "xls"])
 
     if upload_btn.button("Upload"):
         # Upload the file
@@ -70,6 +71,7 @@ if (st.session_state["file"] is None) and (not st.session_state["file_uploaded"]
 
         st.toast("File uploaded successfully", icon="✨")
         st.session_state["file_uploaded"] = True
+        file_upload_box.empty()
         upload_btn.empty()
 
 
@@ -90,7 +92,7 @@ if st.session_state["file_uploaded"]:
             st.session_state.text_boxes = []
 
         if include_charts:
-            prompt = question + " Also create accompanying data visualisation graphs to answer this query."
+            prompt = question + " Also create accompanying data visualisations/graphs that are relevant to this query."
         else:
             prompt = question
 
