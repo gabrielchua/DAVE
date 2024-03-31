@@ -64,14 +64,6 @@ if (st.session_state["file"] is not None) and (not st.session_state["file_upload
 
     st.session_state["file_id"] = file.id
 
-    # Attach the file to the thread
-    message = client.beta.threads.messages.create(
-        thread_id=st.session_state.thread_id,
-        role="user",
-        content="Here is a dataset. Analyse it",
-        file_ids=[st.session_state["file_id"]]
-    )
-
     st.toast("File uploaded successfully", icon="✨")
     st.session_state["file_uploaded"] = True
 
@@ -87,7 +79,6 @@ if st.session_state["file_uploaded"]:
 
         if moderation_endpoint(question) or is_nsfw(question):
             st.warning("Your question has been flagged. Refresh page to try again.")
-            client.beta.threads.delete(st.session_state.thread_id)
             st.stop()
 
         if "text_boxes" not in st.session_state:
@@ -98,6 +89,21 @@ if st.session_state["file_uploaded"]:
         else:
             prompt = question
 
+        # Create a new thread
+        if "thread_id" not in st.session_state:
+            thread = client.beta.threads.create()
+            st.session_state.thread_id = thread.id
+            print(st.session_state.thread_id)
+
+        # Attach the file to the thread
+        message = client.beta.threads.messages.create(
+            thread_id=st.session_state.thread_id,
+            role="user",
+            content="Here is a dataset. Analyse it",
+            file_ids=[st.session_state["file_id"]]
+        )
+
+        # Ask the question
         message = client.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
             role="user",

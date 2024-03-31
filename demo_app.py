@@ -21,14 +21,6 @@ st.set_page_config(page_title="DAVE",
 # Apply custom CSS
 render_custom_css()
 
-# Create a new thread
-if "thread_id" not in st.session_state:
-    thread = client.beta.threads.create()
-    st.session_state.thread_id = thread.id
-    print(st.session_state.thread_id)
-
-# We should store this thread_id, and run a separate script to delete all threads every hour
-
 # Initialise session state variables
 if "file_uploaded" not in st.session_state:
     st.session_state.file_uploaded = False
@@ -51,14 +43,6 @@ st.markdown("This demo uses a data.gov.sg dataset on HDB resale prices.", help="
 text_box = st.empty()
 qn_btn = st.empty()
 
-# Attach the file to the thread
-message = client.beta.threads.messages.create(
-    thread_id=st.session_state.thread_id,
-    role="user",
-    content="Here is a dataset. Analyse it",
-    file_ids=[st.secrets["FILE_ID"]]
-)
-
 question = text_box.text_input("Ask a question", disabled=st.session_state.disabled)
 if qn_btn.button("Ask DAVE"):
 
@@ -67,13 +51,26 @@ if qn_btn.button("Ask DAVE"):
 
     if moderation_endpoint(question) or is_nsfw(question):
         st.warning("Your question has been flagged. Refresh page to try again.")
-        client.beta.threads.delete(st.session_state.thread_id)
         st.stop()
 
     # if is_not_question(question):
     #     st.warning("Please ask a question. Refresh page to try again.")
     #     client.beta.threads.delete(st.session_state.thread_id)
     #     st.stop()
+
+    # Create a new thread
+    if "thread_id" not in st.session_state:
+        thread = client.beta.threads.create()
+        st.session_state.thread_id = thread.id
+        print(st.session_state.thread_id)
+
+    # Attach the file to the thread
+    message = client.beta.threads.messages.create(
+        thread_id=st.session_state.thread_id,
+        role="user",
+        content="Here is a dataset. Analyse it",
+        file_ids=[st.secrets["FILE_ID"]]
+    )
 
     if "text_boxes" not in st.session_state:
         st.session_state.text_boxes = []

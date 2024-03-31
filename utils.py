@@ -29,12 +29,6 @@ def render_custom_css() -> None:
                 padding-right: 3rem;
                 }
                 
-            .stApp a:first-child {
-                display: none;
-            }
-            .css-15zrgzn {display: none}
-            .css-eczf16 {display: none}
-            .css-jn99sy {display: none}
             </style>
             """, unsafe_allow_html=True)
 
