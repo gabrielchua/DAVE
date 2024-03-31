@@ -62,12 +62,14 @@ if (st.session_state["file"] is not None) and (not st.session_state["file_upload
         purpose='assistants'
     )
 
+    st.session_state["file_id"] = file.id
+
     # Attach the file to the thread
     message = client.beta.threads.messages.create(
         thread_id=st.session_state.thread_id,
         role="user",
         content="Here is a dataset. Analyse it",
-        file_ids=[file.id]
+        file_ids=[st.session_state["file_id"]]
     )
 
     st.toast("File uploaded successfully", icon="✨")
@@ -113,5 +115,5 @@ if st.session_state["file_uploaded"]:
             st.toast("DAVE has finished analysing the data", icon="🕵️")
 
         # Clean-up
-        client.files.delete(file.id)
+        client.files.delete(st.session_state.file_id)
         client.beta.threads.delete(st.session_state.thread_id)
