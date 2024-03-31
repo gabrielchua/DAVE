@@ -92,4 +92,4 @@ if qn_btn.button("Ask DAVE"):
         st.toast("DAVE has finished analysing the data", icon="🕵️")
 
         # Clean-up
-        client.beta.threads.delete(st.session_state.thread_id)
+        # client.beta.threads.delete(st.session_state.thread_id)
