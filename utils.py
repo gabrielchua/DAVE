@@ -45,6 +45,22 @@ def guardrail_flag(text) -> bool:
     response = client.moderations.create(input=text)
     return response.results[0].flagged
 
+def is_not_question(text) -> bool:
+    """
+    Returns true if the text is not a question
+    """
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Is the given text a question? If yes, return `1``, else return `0`."},
+            {"role": "user", "content": text},
+        ],
+        max_tokens=1,
+        logit_bias={"15": 100, "16": 100},
+    )
+    output = response.choices[0].message.content
+    return int(output)
+
 class EventHandler(AssistantEventHandler):
     """
     Event handler for the assistant stream

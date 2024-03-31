@@ -6,6 +6,7 @@ from openai import OpenAI
 from utils import (
     EventHandler,
     guardrail_flag,
+    is_not_question,
     render_custom_css
     )
 
@@ -67,6 +68,10 @@ if qn_btn.button("Ask DAVE"):
         st.warning("Your question has been flagged.")
         st.stop()
 
+    if is_not_question(question):
+        st.warning("Please ask a question.")
+        st.stop()
+
     if "text_boxes" not in st.session_state:
         st.session_state.text_boxes = []
 
@@ -85,3 +90,6 @@ if qn_btn.button("Ask DAVE"):
     ) as stream:
         stream.until_done()
         st.toast("DAVE has finished analysing the data", icon="🕵️")
+
+        # Clean-up
+        client.beta.threads.delete(st.session_state.thread_id)

@@ -6,6 +6,7 @@ from openai import OpenAI
 from utils import (
     EventHandler, 
     guardrail_flag,
+    is_not_question,
     render_custom_css
     )
 
@@ -24,8 +25,6 @@ if "thread_id" not in st.session_state:
     thread = client.beta.threads.create()
     st.session_state.thread_id = thread.id
     print(st.session_state.thread_id)
-
-# Possible improvement, We should store this thread_id, and run a separate script to delete all threads every hour
 
 # Initialise session state variables
 if "file_uploaded" not in st.session_state:
@@ -85,6 +84,12 @@ if st.session_state["file_uploaded"]:
 
         if guardrail_flag(question):
             st.warning("Your question has been flagged.")
+            client.beta.threads.delete(st.session_state.thread_id)
+            st.stop()
+
+        if is_not_question(question):
+            st.warning("Please ask a question.")
+            client.beta.threads.delete(st.session_state.thread_id)
             st.stop()
 
         if "text_boxes" not in st.session_state:
