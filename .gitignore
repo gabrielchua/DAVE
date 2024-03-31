@@ -320,6 +320,8 @@ pyrightconfig.json
 *.pdf
 *.png
 
+demo/*
+
 bin/
 share/
 etc/
