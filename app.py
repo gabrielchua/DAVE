@@ -76,7 +76,7 @@ if (st.session_state["file"] is not None) and (not st.session_state["file_upload
 if st.session_state["file_uploaded"]:
     question = text_box.text_input("Ask a question", disabled=st.session_state.disabled)
     include_charts = check_box.checkbox("Create relevant graphs?")
-    if qn_btn.button("Ask Sherlock"):
+    if qn_btn.button("Ask DAVE"):
 
         text_box.empty()
         qn_btn.empty()
@@ -104,4 +104,4 @@ if st.session_state["file_uploaded"]:
                                                         event_handler=EventHandler()
         ) as stream:
             stream.until_done()
-            st.toast("Sherlock has finished analysing the data", icon="🕵️")
+            st.toast("DAVE has finished analysing the data", icon="🕵️")

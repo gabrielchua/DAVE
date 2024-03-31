@@ -57,7 +57,7 @@ message = client.beta.threads.messages.create(
 )
 
 question = text_box.text_input("Ask a question", disabled=st.session_state.disabled)
-if qn_btn.button("Ask Sherlock"):
+if qn_btn.button("Ask DAVE"):
 
     text_box.empty()
     qn_btn.empty()
@@ -79,4 +79,4 @@ if qn_btn.button("Ask Sherlock"):
                                                     event_handler=EventHandler()
     ) as stream:
         stream.until_done()
-        st.toast("Sherlock has finished analysing the data", icon="🕵️")
+        st.toast("DAVE has finished analysing the data", icon="🕵️")
