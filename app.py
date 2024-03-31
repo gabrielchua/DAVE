@@ -24,7 +24,7 @@ if "thread_id" not in st.session_state:
     st.session_state.thread_id = thread.id
     print(st.session_state.thread_id)
 
-# We should store this thread_id, and run a separate script to delete all threads every hour
+# Possible improvement, We should store this thread_id, and run a separate script to delete all threads every hour
 
 # Initialise session state variables
 if "file_uploaded" not in st.session_state:
@@ -105,3 +105,7 @@ if st.session_state["file_uploaded"]:
         ) as stream:
             stream.until_done()
             st.toast("DAVE has finished analysing the data", icon="🕵️")
+
+        # Clean-up
+        client.files.delete(file.id)
+        client.beta.threads.delete(st.session_state.thread_id)
