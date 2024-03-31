@@ -65,11 +65,13 @@ if qn_btn.button("Ask DAVE"):
     qn_btn.empty()
 
     if guardrail_flag(question):
-        st.warning("Your question has been flagged.")
+        st.warning("Your question has been flagged. Refresh page to try again.")
+        client.beta.threads.delete(st.session_state.thread_id)
         st.stop()
 
     if is_not_question(question):
-        st.warning("Please ask a question.")
+        st.warning("Please ask a question. Refresh page to try again.")
+        client.beta.threads.delete(st.session_state.thread_id)
         st.stop()
 
     if "text_boxes" not in st.session_state:
