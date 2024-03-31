@@ -38,12 +38,28 @@ def render_custom_css() -> None:
             </style>
             """, unsafe_allow_html=True)
 
-def guardrail_flag(text) -> bool:
+def moderation_endpoint(text) -> bool:
     """
     Returns true if the text is NSFW
     """
     response = client.moderations.create(input=text)
     return response.results[0].flagged
+
+def is_nsfw(text) -> bool:
+    """
+    Returns true if the text is not a question
+    """
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Is the given text NSFW? If yes, return `1``, else return `0`."},
+            {"role": "user", "content": text},
+        ],
+        max_tokens=1,
+        logit_bias={"15": 100, "16": 100},
+    )
+    output = response.choices[0].message.content
+    return int(output)
 
 def is_not_question(text) -> bool:
     """

@@ -5,7 +5,8 @@ import streamlit as st
 from openai import OpenAI
 from utils import (
     EventHandler,
-    guardrail_flag,
+    moderation_endpoint,
+    is_nsfw,
     is_not_question,
     render_custom_css
     )
@@ -64,7 +65,7 @@ if qn_btn.button("Ask DAVE"):
     text_box.empty()
     qn_btn.empty()
 
-    if guardrail_flag(question):
+    if moderation_endpoint(question) or is_nsfw(question):
         st.warning("Your question has been flagged. Refresh page to try again.")
         client.beta.threads.delete(st.session_state.thread_id)
         st.stop()
