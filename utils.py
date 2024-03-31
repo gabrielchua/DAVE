@@ -204,7 +204,7 @@ class EventHandler(AssistantEventHandler):
         st.session_state.assistant_text.append("")
         
         # Display image in textbox
-        image_html = f'<p align="center"><img src="data:image/png;base64,{data_url}" width=600></p>',
+        image_html = f'<p align="center"><img src="data:image/png;base64,{data_url}" width=600></p>'
         st.session_state.text_boxes[-1].markdown(image_html, unsafe_allow_html=True)
 
         # Create new text box
