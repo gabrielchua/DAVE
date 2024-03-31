@@ -73,7 +73,7 @@ if (st.session_state["file"] is None) and (not st.session_state["file_uploaded"]
         st.session_state["file_uploaded"] = True
         file_upload_box.empty()
         upload_btn.empty()
-
+        st.rerun()
 
 if st.session_state["file_uploaded"]:
     question = text_box.text_input("Ask a question", disabled=st.session_state.disabled)
