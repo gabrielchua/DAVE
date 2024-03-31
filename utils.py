@@ -38,6 +38,13 @@ def render_custom_css() -> None:
             </style>
             """, unsafe_allow_html=True)
 
+def guardrail_flag(text) -> bool:
+    """
+    Returns true if the text is NSFW
+    """
+    response = client.moderations.create(input=text)
+    return response.results[0].flagged
+
 class EventHandler(AssistantEventHandler):
     """
     Event handler for the assistant stream

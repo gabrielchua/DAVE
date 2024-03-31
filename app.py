@@ -5,6 +5,7 @@ import streamlit as st
 from openai import OpenAI
 from utils import (
     EventHandler, 
+    guardrail_flag,
     render_custom_css
     )
 
@@ -81,6 +82,10 @@ if st.session_state["file_uploaded"]:
         text_box.empty()
         qn_btn.empty()
         check_box.empty()
+
+        if guardrail_flag(question):
+            st.warning("Your question has been flagged.")
+            st.stop()
 
         if "text_boxes" not in st.session_state:
             st.session_state.text_boxes = []
