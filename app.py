@@ -49,7 +49,7 @@ text_box = st.empty()
 check_box = st.empty()
 qn_btn = st.empty()
 
-# Side Bar
+# File Upload
 if (st.session_state["file_uploaded"] is False) and (st.session_state["file_uploaded"]):
     st.session_state["file"] = st.file_uploader("Please upload your dataset.", type=["csv", "xlsx", "xls"])
 
