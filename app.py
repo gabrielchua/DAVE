@@ -56,7 +56,7 @@ check_box = st.empty()
 qn_btn = st.empty()
 
 # File Upload
-if (st.session_state["file"] is not None) and (not st.session_state["file_uploaded"]):
+if (st.session_state["file"] is None) and (not st.session_state["file_uploaded"]):
     st.session_state["file"] = st.file_uploader("Please upload your dataset.", type=["csv", "xlsx", "xls"])
 
     if upload_btn.button("Upload"):
