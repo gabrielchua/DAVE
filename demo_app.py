@@ -4,7 +4,8 @@ demo_app.py
 import streamlit as st
 from openai import OpenAI
 from utils import (
-    EventHandler, 
+    EventHandler,
+    guardrail_flag,
     render_custom_css
     )
 
@@ -61,6 +62,10 @@ if qn_btn.button("Ask DAVE"):
 
     text_box.empty()
     qn_btn.empty()
+
+    if guardrail_flag(question):
+        st.warning("Your question has been flagged.")
+        st.stop()
 
     if "text_boxes" not in st.session_state:
         st.session_state.text_boxes = []
