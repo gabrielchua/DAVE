@@ -55,7 +55,6 @@ st.subheader("DAVE: Data Analysis & Visualisation Engine")
 file_upload_box = st.empty()
 upload_btn = st.empty()
 text_box = st.empty()
-check_box = st.empty()
 qn_btn = st.empty()
 
 # File Upload
@@ -80,7 +79,6 @@ if not st.session_state["file_uploaded"]:
 
 if st.session_state["file_uploaded"]:
     question = text_box.text_input("Ask a question", disabled=st.session_state.disabled)
-    include_charts = check_box.checkbox("Include relevant graphs")
     if qn_btn.button("Ask DAVE"):
 
         text_box.empty()
@@ -93,11 +91,6 @@ if st.session_state["file_uploaded"]:
 
         if "text_boxes" not in st.session_state:
             st.session_state.text_boxes = []
-
-        if include_charts:
-            prompt = question + " Also create accompanying data visualisations/graphs that are relevant to this query."
-        else:
-            prompt = question
 
         # Create a new thread
         if "thread_id" not in st.session_state:
