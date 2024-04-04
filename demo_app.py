@@ -86,7 +86,8 @@ if qn_btn.button("Ask DAVE"):
 
     with client.beta.threads.runs.create_and_stream(thread_id=st.session_state.thread_id,
                                                     assistant_id=assistant.id,
-                                                    event_handler=EventHandler()
+                                                    event_handler=EventHandler(),
+                                                    temperature=0.2
     ) as stream:
         stream.until_done()
         st.toast("DAVE has finished analysing the data", icon="🕵️")

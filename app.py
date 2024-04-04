@@ -110,7 +110,7 @@ if st.session_state["file_uploaded"]:
         message = client.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
             role="user",
-            content=question
+            content=question,
         )
 
         st.session_state.text_boxes.append(st.empty())
@@ -118,7 +118,8 @@ if st.session_state["file_uploaded"]:
 
         with client.beta.threads.runs.create_and_stream(thread_id=st.session_state.thread_id,
                                                         assistant_id=assistant.id,
-                                                        event_handler=EventHandler()
+                                                        event_handler=EventHandler(),
+                                                        temperature=0.2
         ) as stream:
             stream.until_done()
             st.toast("DAVE has finished analysing the data", icon="🕵️")
