@@ -146,9 +146,9 @@ if st.session_state["file_uploaded"]:
         
         # Download these files
         for file_id in assistant_created_file_ids:
-            content = client.files.retrieve_content(file_id)
+            content = client.files.content(file_id)
             file_name = client.files.retrieve(file_id).filename
-            file_name = os.path.basename(file_path)
+            file_name = os.path.basename(file_name)
             st.download_button(label=f"Download `{file_name}`",
                             data=content,
                             file_name=file_name, 

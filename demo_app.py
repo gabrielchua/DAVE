@@ -1,6 +1,7 @@
 """
 demo_app.py
 """
+import os
 import streamlit as st
 from openai import OpenAI
 from utils import (
@@ -109,7 +110,7 @@ if qn_btn.button("Ask DAVE"):
         
         # Download these files
         for file_id in assistant_created_file_ids:
-            content = client.files.retrieve_content(file_id)
+            content = client.files.content(file_id)
             file_name = client.files.retrieve(file_id).filename
             file_name = os.path.basename(file_path)
             st.download_button(label=f"Download `{file_name}`",
