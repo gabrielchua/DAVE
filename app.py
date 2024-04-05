@@ -84,7 +84,7 @@ if not st.session_state["file_uploaded"]:
         st.rerun()
 
 if st.session_state["file_uploaded"]:
-    question = text_box.text_input("Ask a question", disabled=st.session_state.disabled)
+    question = text_box.text_area("Ask a question", disabled=st.session_state.disabled)
     if qn_btn.button("Ask DAVE"):
 
         text_box.empty()
