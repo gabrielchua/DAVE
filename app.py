@@ -1,7 +1,7 @@
 """
 app.py
 """
-import time
+import os
 
 import streamlit as st
 from openai import OpenAI
@@ -51,7 +51,7 @@ if "disabled" not in st.session_state:
 
 
 # UI
-st.subheader("DAVE: Data Analysis & Visualisation Engine")
+st.subheader("🔮 DAVE: Data Analysis & Visualisation Engine")
 file_upload_box = st.empty()
 upload_btn = st.empty()
 text_box = st.empty()
@@ -59,22 +59,28 @@ qn_btn = st.empty()
 
 # File Upload
 if not st.session_state["file_uploaded"]:
-    st.session_state["file"] = file_upload_box.file_uploader("Please upload your dataset.", type=["csv", "xlsx", "xls"])
+    st.session_state["files"] = file_upload_box.file_uploader("Please upload your dataset(s).", 
+                                                             accept_multiple_files=True,
+                                                             type=["csv", "xlsx", "xls"])
 
     if upload_btn.button("Upload"):
-        # Upload the file
-        file = client.files.create(
-            file=st.session_state["file"],
-            purpose='assistants'
-        )
 
-        st.session_state["file_id"] = file.id
+        st.session_state["file_id"] = []
+
+        # Upload the file
+        for file in st.session_state["files"]:
+            oai_file = client.files.create(
+                file=file,
+                purpose='assistants'
+            )
+
+            # Append the file ID to the list
+            st.session_state["file_id"].append(oai_file.id)
 
         st.toast("File uploaded successfully", icon="✨")
         st.session_state["file_uploaded"] = True
         file_upload_box.empty()
         upload_btn.empty()
-        time.sleep(2)
         st.rerun()
 
 if st.session_state["file_uploaded"]:
@@ -97,12 +103,12 @@ if st.session_state["file_uploaded"]:
             st.session_state.thread_id = thread.id
             print(st.session_state.thread_id)
 
-        # Attach the file to the thread
+        # Attach the file(s) to the thread
         message = client.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
             role="user",
             content="Here is a dataset. Analyse it",
-            file_ids=[st.session_state["file_id"]]
+            file_ids=[file_id for file_id in st.session_state.file_id]
         )
 
         # Ask the question
@@ -118,11 +124,50 @@ if st.session_state["file_uploaded"]:
         with client.beta.threads.runs.create_and_stream(thread_id=st.session_state.thread_id,
                                                         assistant_id=assistant.id,
                                                         event_handler=EventHandler(),
-                                                        temperature=0.2
+                                                        temperature=0
         ) as stream:
             stream.until_done()
             st.toast("DAVE has finished analysing the data", icon="🕵️")
 
+        # Retrieve the messages by the Assistant from the thread
+        thread_messages = client.beta.threads.messages.list(st.session_state.thread_id)
+        assistant_messages = []
+        for message in thread_messages.data:
+            if message.role == "assistant":
+                assistant_messages.append(message.id)
+
+        # For each assistant message, retrieve the file(s) created by the Assistant
+        assistant_created_file_ids = []
+        for message_id in assistant_messages:
+            message_files = client.beta.threads.messages.files.list(
+                thread_id=st.session_state.thread_id,
+                message_id=message_id)
+            for file in message_files.data:
+                assistant_created_file_ids.append(file.id)
+        
+        # Download these files
+        for file_id in assistant_created_file_ids:
+            content = client.files.retrieve_content(file_id)
+            file_name = client.files.retrieve(file_id).filename
+            file_name = os.path.basename(file_path)
+            st.download_button(label=f"Download `{file_name}`",
+                               data=content,
+                               file_name=file_name, 
+                               use_container_width=True)
+
         # Clean-up
-        client.files.delete(st.session_state.file_id)
+        # Delete the file(s) uploaded
+        for file_id in st.session_state.file_id:
+            client.files.delete(file_id)
+            print(f"Deleted uploaded file {file_id}")
+
+        # Delete the file(s) created by the Assistant
+        for file_id in assistant_created_file_ids:
+            client.files.delete(file_id)
+            print(f"Deleted assistant-created file {file_id}")
+            
+        # Delete the thread
         client.beta.threads.delete(st.session_state.thread_id)
+        print(f"Deleted thread {st.session_state.thread_id}")
+
+# Here is a dataset about flat prices in Singapore, and another about the amenities. Train a model to predict price per square metre.
