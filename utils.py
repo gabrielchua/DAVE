@@ -80,6 +80,12 @@ class EventHandler(AssistantEventHandler):
         """
         Handler for when a text is created
         """
+        # Update the earlier code box
+        try:
+            st.session_state[f"code_expander_{len(st.session_state.text_boxes) - 1}"].update(state="complete", expanded=False)
+        except KeyError:
+            pass
+
         # Create a new text box
         st.session_state.text_boxes.append(st.empty())
         # Retrieve the newly created text box and empty it
