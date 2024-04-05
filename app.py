@@ -124,7 +124,7 @@ if st.session_state["file_uploaded"]:
         with client.beta.threads.runs.stream(thread_id=st.session_state.thread_id,
                                              assistant_id=assistant.id,
                                              event_handler=EventHandler(),
-                                             emperature=0) as stream:
+                                             temperature=0) as stream:
             stream.until_done()
             st.toast("DAVE has finished analysing the data", icon="🕵️")
 
