@@ -7,6 +7,8 @@ import streamlit as st
 from openai import OpenAI
 from utils import (
     EventHandler, 
+    delete_uploaded_files,
+    delete_thread,
     moderation_endpoint,
     is_nsfw,
     # is_not_question,
@@ -92,6 +94,7 @@ if st.session_state["file_uploaded"]:
 
         if moderation_endpoint(question) or is_nsfw(question):
             st.warning("Your question has been flagged. Refresh page to try again.")
+            delete_uploaded_files()
             st.stop()
 
         if "text_boxes" not in st.session_state:
@@ -150,23 +153,18 @@ if st.session_state["file_uploaded"]:
             file_name = client.files.retrieve(file_id).filename
             file_name = os.path.basename(file_name)
             st.download_button(label=f"Download `{file_name}`",
-                            data=content,
-                            file_name=file_name, 
-                            use_container_width=True)
+                               data=content,
+                               file_name=file_name, 
+                               use_container_width=True)
 
         # Clean-up
         # Delete the file(s) uploaded
-        for file_id in st.session_state.file_id:
-            client.files.delete(file_id)
-            print(f"Deleted uploaded file {file_id}")
-
+        delete_uploaded_files()
+        
         # Delete the file(s) created by the Assistant
         for file_id in assistant_created_file_ids:
             client.files.delete(file_id)
             print(f"Deleted assistant-created file {file_id}")
             
         # Delete the thread
-        client.beta.threads.delete(st.session_state.thread_id)
-        print(f"Deleted thread {st.session_state.thread_id}")
-
-# Here is a dataset about flat prices in Singapore, and another about the amenities. Train a model to predict price per square metre.
+        delete_thread(st.session_state.thread_id)

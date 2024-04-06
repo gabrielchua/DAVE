@@ -72,6 +72,17 @@ def is_not_question(text) -> bool:
     output = response.choices[0].message.content
     return bool(output)
 
+def delete_uploaded_files():
+    """ Delete the file(s) uploaded """
+    for file_id in st.session_state.file_id:
+        client.files.delete(file_id)
+        print(f"Deleted uploaded file {file_id}")
+
+def delete_thread(thread_id):
+    """ Delete the thread """
+    client.beta.threads.delete(thread_id)
+    print(f"Deleted thread {thread_id}")
+
 class EventHandler(AssistantEventHandler):
     """
     Event handler for the assistant stream
