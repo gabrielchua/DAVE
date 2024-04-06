@@ -17,20 +17,19 @@ def render_custom_css() -> None:
     """
     Applies custom CSS
     """
-    st.markdown("""
+    st.html("""
             <style>
-            #MainMenu {visibility: hidden}
-            #header {visibility: hidden}
-            #footer {visibility: hidden}
-            .block-container {
-                padding-top: 2rem;
-                padding-bottom: 2rem;
-                padding-left: 3rem;
-                padding-right: 3rem;
-                }
-                
+                #MainMenu {visibility: hidden}
+                #header {visibility: hidden}
+                #footer {visibility: hidden}
+                .block-container {
+                    padding-top: 2rem;
+                    padding-bottom: 2rem;
+                    padding-left: 3rem;
+                    padding-right: 3rem;
+                    }
             </style>
-            """, unsafe_allow_html=True)
+            """)
 
 def moderation_endpoint(text) -> bool:
     """
@@ -50,10 +49,11 @@ def is_nsfw(text) -> bool:
             {"role": "user", "content": text},
         ],
         max_tokens=1,
-        logit_bias={"15": 100, "16": 100},
+        logit_bias={"15": 100,
+                    "16": 100},
     )
     output = response.choices[0].message.content
-    return int(output)
+    return bool(output)
 
 def is_not_question(text) -> bool:
     """
@@ -66,10 +66,11 @@ def is_not_question(text) -> bool:
             {"role": "user", "content": text},
         ],
         max_tokens=1,
-        logit_bias={"15": 100, "16": 100},
+        logit_bias={"15": 100,
+                    "16": 100},
     )
     output = response.choices[0].message.content
-    return int(output)
+    return bool(output)
 
 class EventHandler(AssistantEventHandler):
     """
@@ -80,7 +81,10 @@ class EventHandler(AssistantEventHandler):
         """
         Handler for when a text is created
         """
-        # Update the earlier code box
+        # This try-except block will update the earlier expander for code to complete.
+        # Note the indexing. We are updating the x-1 textbox where x is the current textbox.
+        # Note how `on_tool_call_done` creates a new textbook (which is the x_th textbox, so we want to access the x-1_th)
+        # This is to address an edge case where code is executed, but there is no output textbox (e.g. a graph is created)
         try:
             st.session_state[f"code_expander_{len(st.session_state.text_boxes) - 1}"].update(state="complete", expanded=False)
         except KeyError:
@@ -139,7 +143,7 @@ class EventHandler(AssistantEventHandler):
                     if f"code_box_{len(st.session_state.text_boxes)}" not in st.session_state:
                         # Nest the code in an expander
                         st.session_state[f"code_expander_{len(st.session_state.text_boxes)}"] = st.status("**💻 Code**", expanded=True)
-                        # Create a code box
+                        # Create an empty container which is the placeholder for the code box
                         st.session_state[f"code_box_{len(st.session_state.text_boxes)}"] = st.session_state[f"code_expander_{len(st.session_state.text_boxes)}"].empty()
 
                 # Clear the code box
@@ -154,6 +158,8 @@ class EventHandler(AssistantEventHandler):
             if delta.code_interpreter.outputs:
                 for output in delta.code_interpreter.outputs:
                     if output.type == "logs":
+                        # This try-except block will update the earlier expander for code to complete.
+                        # Note the indexing, as we have not yet created a new text box for the code output.
                         try:
                             st.session_state[f"code_expander_{len(st.session_state.text_boxes)}"].update(state="complete", expanded=False)
                         except KeyError:
@@ -211,7 +217,7 @@ class EventHandler(AssistantEventHandler):
         
         # Display image in textbox
         image_html = f'<p align="center"><img src="data:image/png;base64,{data_url}" width=600></p>'
-        st.session_state.text_boxes[-1].markdown(image_html, unsafe_allow_html=True)
+        st.session_state.text_boxes[-1].html(image_html, unsafe_allow_html=True)
 
         # Create new text box
         st.session_state.assistant_text.append("")
