@@ -2,10 +2,14 @@
 utils.py
 """
 import base64
+import json
+from datetime import datetime
 from PIL import ImageFile
 from typing_extensions import override
 
+import gspread
 import streamlit as st
+from google.oauth2 import service_account
 from openai import (
     OpenAI,
     AssistantEventHandler
@@ -82,6 +86,24 @@ def delete_thread(thread_id):
     """ Delete the thread """
     client.beta.threads.delete(thread_id)
     print(f"Deleted thread {thread_id}")
+
+def update_google_sheet(demo_type, data_type, data_id):
+    """ 
+    Add the data to a Google Sheet 
+    
+    If the demo is interactive, the thread_id and file_id will not be deleted automatically. 
+    Hence, the thread_id and file_id is stored to facilitate the scheduled deletion of the thread and files in the backend.
+
+    """
+    credentials = service_account.Credentials.from_service_account_info(
+        json.loads(st.secrets["GCP_SERVICE_ACCOUNT"]),
+        scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        )
+    gc = gspread.authorize(credentials)
+    sh = gc.open_by_url(st.secrets["PRIVATE_GSHEETS_URL"])
+    worksheet = sh.get_worksheet(0) # Assuming you want to write to the first sheet
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    worksheet.append_row([current_time, demo_type, data_type, data_id])
 
 class EventHandler(AssistantEventHandler):
     """

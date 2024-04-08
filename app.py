@@ -9,15 +9,15 @@ from utils import (
     EventHandler, 
     delete_uploaded_files,
     delete_thread,
-    moderation_endpoint,
     is_nsfw,
-    # is_not_question,
-    render_custom_css
+    moderation_endpoint,
+    render_custom_css,
+    update_google_sheet
     )
 
 # Initialise the OpenAI client, and retrieve the assistant
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID"])
+assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID_GPT3_5"])
 
 st.set_page_config(page_title="DAVE",
                    page_icon="🕵️")
@@ -50,8 +50,6 @@ if "code_output" not in st.session_state:
 if "disabled" not in st.session_state:
     st.session_state.disabled = False
 
-
-
 # UI
 st.subheader("🔮 DAVE: Data Analysis & Visualisation Engine")
 file_upload_box = st.empty()
@@ -78,6 +76,8 @@ if not st.session_state["file_uploaded"]:
 
             # Append the file ID to the list
             st.session_state["file_id"].append(oai_file.id)
+            # Update the Google Sheet to faciliate manual deletion
+            update_google_sheet("public", "file", oai_file.id)
 
         st.toast("File uploaded successfully", icon="✨")
         st.session_state["file_uploaded"] = True
@@ -104,6 +104,8 @@ if st.session_state["file_uploaded"]:
         if "thread_id" not in st.session_state:
             thread = client.beta.threads.create()
             st.session_state.thread_id = thread.id
+            # Update the Google Sheet to faciliate manual deletion
+            update_google_sheet("public", "thread", thread.id)
             print(st.session_state.thread_id)
 
         # Attach the file(s) to the thread
