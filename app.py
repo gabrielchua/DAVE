@@ -92,7 +92,7 @@ if st.session_state["file_uploaded"]:
         text_box.empty()
         qn_btn.empty()
 
-        if moderation_endpoint(question) or is_nsfw(question):
+        if moderation_endpoint(question):
             st.warning("Your question has been flagged. Refresh page to try again.")
             delete_uploaded_files()
             st.stop()
