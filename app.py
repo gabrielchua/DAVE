@@ -25,12 +25,6 @@ st.set_page_config(page_title="DAVE",
 # Apply custom CSS
 render_custom_css()
 
-# Create a new thread
-if "thread_id" not in st.session_state:
-    thread = client.beta.threads.create()
-    st.session_state.thread_id = thread.id
-    print(st.session_state.thread_id)
-
 # Initialise session state variables
 if "file" not in st.session_state:
     st.session_state.file = None
