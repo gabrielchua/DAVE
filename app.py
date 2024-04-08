@@ -17,7 +17,7 @@ from utils import (
 
 # Initialise the OpenAI client, and retrieve the assistant
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID_GPT3_5"])
+assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID"])
 
 st.set_page_config(page_title="DAVE",
                    page_icon="🕵️")
