@@ -27,7 +27,7 @@ def render_custom_css() -> None:
                 #header {visibility: hidden}
                 #footer {visibility: hidden}
                 .block-container {
-                    padding-top: 2rem;
+                    padding-top: 3rem;
                     padding-bottom: 2rem;
                     padding-left: 3rem;
                     padding-right: 3rem;

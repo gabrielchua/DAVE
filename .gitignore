@@ -326,3 +326,5 @@ bin/
 share/
 etc/
 pyvenv.cfg
+
+app/*

@@ -1,9 +1,11 @@
 """
 app.py
 """
+import io
 import os
 
 import streamlit as st
+import pandas as pd
 from openai import OpenAI
 from utils import (
     EventHandler, 
@@ -144,14 +146,31 @@ if st.session_state["file_uploaded"]:
                 assistant_created_file_ids.append(file.id)
         
         # Download these files
-        for file_id in assistant_created_file_ids:
-            content = client.files.content(file_id)
-            file_name = client.files.retrieve(file_id).filename
-            file_name = os.path.basename(file_name)
-            st.download_button(label=f"Download `{file_name}`",
-                               data=content,
-                               file_name=file_name, 
-                               use_container_width=True)
+        if len(assistant_created_file_ids) > 0:
+            st.subheader("📂  **Downloadable Files**")
+            for file_id in assistant_created_file_ids:
+                content = client.files.retrieve_content(file_id)
+                file_name = client.files.retrieve(file_id).filename
+                file_name = os.path.basename(file_name)
+
+                # Save content to disk at "app/static/"
+                # Create the directory if it doesn't exist
+                if not os.path.exists("app/static"):
+                    os.makedirs("app/static")
+
+                # if file_name is `.csv`
+                if file_name.endswith(".csv"):
+                    try:
+                        with open(f"app/static/{file_name}", "wb") as f:
+                            f.write(content)
+                    except:
+                        content = io.StringIO(content)            
+                        df = pd.read_csv(content)
+                        df.to_csv(f"app/static/{file_name}", index=False)
+                elif file_name.endswith(".png"):
+                    with open(f"app/static/{file_name}", "wb") as f:
+                        f.write(content)
+                st.write(f"- [{file_name}](app/static/{file_name})")
 
         # Clean-up
         # Delete the file(s) uploaded
