@@ -57,7 +57,7 @@ qn_btn = st.empty()
 if not st.session_state["file_uploaded"]:
     st.session_state["files"] = file_upload_box.file_uploader("Please upload your dataset(s).", 
                                                              accept_multiple_files=True,
-                                                             type=["csv", "xlsx", "xls"])
+                                                             type=["csv"])
 
     if upload_btn.button("Upload"):
 
