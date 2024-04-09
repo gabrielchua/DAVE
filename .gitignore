@@ -327,4 +327,8 @@ share/
 etc/
 pyvenv.cfg
 
-app/*
+app/static/*.csv
+app/static/*.png
+app/static/*.zip
+app/static/*.jpg
+app/static/*.jpeg

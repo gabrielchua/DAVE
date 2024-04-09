@@ -72,6 +72,8 @@ if not st.session_state["file_uploaded"]:
 
             # Append the file ID to the list
             st.session_state["file_id"].append(oai_file.id)
+            # Log
+            print(f"Uploaded new file: \t {oai_file.id}")
             # Update the Google Sheet to faciliate manual deletion
             update_google_sheet("public", "file", oai_file.id)
 
@@ -102,7 +104,7 @@ if st.session_state["file_uploaded"]:
             st.session_state.thread_id = thread.id
             # Update the Google Sheet to faciliate manual deletion
             update_google_sheet("public", "thread", thread.id)
-            print(st.session_state.thread_id)
+            print(f"Created new thread: \t {st.session_state.thread_id}")
 
         # Attach the file(s) to the thread
         message = client.beta.threads.messages.create(
@@ -129,48 +131,45 @@ if st.session_state["file_uploaded"]:
             stream.until_done()
             st.toast("DAVE has finished analysing the data", icon="🕵️")
 
-        # Retrieve the messages by the Assistant from the thread
-        thread_messages = client.beta.threads.messages.list(st.session_state.thread_id)
-        assistant_messages = []
-        for message in thread_messages.data:
-            if message.role == "assistant":
-                assistant_messages.append(message.id)
+        with st.spinner("Preparing the files for download..."):
+            # Retrieve the messages by the Assistant from the thread
+            thread_messages = client.beta.threads.messages.list(st.session_state.thread_id)
+            assistant_messages = []
+            for message in thread_messages.data:
+                if message.role == "assistant":
+                    assistant_messages.append(message.id)
 
-        # For each assistant message, retrieve the file(s) created by the Assistant
-        assistant_created_file_ids = []
-        for message_id in assistant_messages:
-            message_files = client.beta.threads.messages.files.list(
-                thread_id=st.session_state.thread_id,
-                message_id=message_id)
-            for file in message_files.data:
-                assistant_created_file_ids.append(file.id)
-        
-        # Download these files
-        if len(assistant_created_file_ids) > 0:
-            st.subheader("📂  **Downloadable Files**")
-            for file_id in assistant_created_file_ids:
-                content = client.files.retrieve_content(file_id)
-                file_name = client.files.retrieve(file_id).filename
-                file_name = os.path.basename(file_name)
+            # For each assistant message, retrieve the file(s) created by the Assistant
+            assistant_created_file_ids = []
+            for message_id in assistant_messages:
+                message_files = client.beta.threads.messages.files.list(
+                    thread_id=st.session_state.thread_id,
+                    message_id=message_id)
+                for file in message_files.data:
+                    assistant_created_file_ids.append(file.id)
+            
+            # Download these files
+            if len(assistant_created_file_ids) > 0:
+                st.markdown("### 📂  **Downloadable Files**")
+                for file_id in assistant_created_file_ids:
+                    file_data = client.files.content(file_id)
+                    file = file_data.read()
+                    file_name = client.files.retrieve(file_id).filename
+                    file_name = os.path.basename(file_name)
 
-                # Save content to disk at "app/static/"
-                # Create the directory if it doesn't exist
-                if not os.path.exists("app/static"):
-                    os.makedirs("app/static")
-
-                # if file_name is `.csv`
-                if file_name.endswith(".csv"):
-                    try:
+                    # if file_name is `.csv`
+                    if file_name.endswith(".csv"):
+                        try:
+                            with open(f"app/static/{file_name}", "wb") as f:
+                                f.write(file)
+                        except:
+                            csv_file = io.StringIO(file)            
+                            df = pd.read_csv(csv_file)
+                            df.to_csv(f"app/static/{file_name}", index=False)
+                    elif file_name.endswith(".png"):
                         with open(f"app/static/{file_name}", "wb") as f:
-                            f.write(content)
-                    except:
-                        content = io.StringIO(content)            
-                        df = pd.read_csv(content)
-                        df.to_csv(f"app/static/{file_name}", index=False)
-                elif file_name.endswith(".png"):
-                    with open(f"app/static/{file_name}", "wb") as f:
-                        f.write(content)
-                st.write(f"- [{file_name}](app/static/{file_name})")
+                            f.write(file)
+                    st.write(f"- [{file_name}](app/static/{file_name})")
 
         # Clean-up
         # Delete the file(s) uploaded
@@ -179,7 +178,7 @@ if st.session_state["file_uploaded"]:
         # Delete the file(s) created by the Assistant
         for file_id in assistant_created_file_ids:
             client.files.delete(file_id)
-            print(f"Deleted assistant-created file {file_id}")
+            print(f"Deleted assistant-created file: \t {file_id}")
             
         # Delete the thread
         delete_thread(st.session_state.thread_id)

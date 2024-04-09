@@ -3,6 +3,7 @@ utils.py
 """
 import base64
 import json
+import re
 from datetime import datetime
 from PIL import ImageFile
 from typing_extensions import override
@@ -80,12 +81,12 @@ def delete_uploaded_files():
     """ Delete the file(s) uploaded """
     for file_id in st.session_state.file_id:
         client.files.delete(file_id)
-        print(f"Deleted uploaded file {file_id}")
+        print(f"Deleted uploaded file: \t {file_id}")
 
 def delete_thread(thread_id):
     """ Delete the thread """
     client.beta.threads.delete(thread_id)
-    print(f"Deleted thread {thread_id}")
+    print(f"Deleted thread: \t {thread_id}")
 
 def update_google_sheet(demo_type, data_type, data_id):
     """ 
@@ -104,6 +105,20 @@ def update_google_sheet(demo_type, data_type, data_id):
     worksheet = sh.get_worksheet(0) # Assuming you want to write to the first sheet
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     worksheet.append_row([current_time, demo_type, data_type, data_id])
+
+def remove_links(text):
+    # Pattern to match Markdown links: [Link text](URL)
+    link_pattern = r'\[.*?\]\(.*?\)'
+    # Pattern to match lines starting with list item indicators (unordered or ordered)
+    list_item_pattern = r'^(\s*(\*|-|\d+\.)\s).*'
+    # Combine both patterns to identify list items containing links
+    combined_pattern = rf'({list_item_pattern}.*?{link_pattern}.*?$)|{link_pattern}'
+    
+    # Replace the matching content with an empty string
+    # The MULTILINE flag is used to allow ^ to match the start of each line
+    cleaned_text = re.sub(combined_pattern, '', text, flags=re.MULTILINE)
+    
+    return cleaned_text
 
 class EventHandler(AssistantEventHandler):
     """
@@ -129,6 +144,8 @@ class EventHandler(AssistantEventHandler):
         st.session_state.text_boxes[-1].empty()
         # Insert the text into the last element in assistant text list
         st.session_state.assistant_text[-1] += "**> 🕵️ DAVE:** \n\n "
+        # Remove links from the text
+        st.session_state.assistant_text[-1] = remove_links(st.session_state.assistant_text[-1])
         # Display the text in the newly created text box
         st.session_state.text_boxes[-1].info("".join(st.session_state["assistant_text"][-1]))
       
@@ -142,6 +159,8 @@ class EventHandler(AssistantEventHandler):
         # If there is text written, add it to latest element in the assistant text list
         if delta.value:
             st.session_state.assistant_text[-1] += delta.value
+        # Remove links from the text
+        st.session_state.assistant_text[-1] = remove_links(st.session_state.assistant_text[-1])
         # Re-display the full text in the latest text box
         st.session_state.text_boxes[-1].info("".join(st.session_state["assistant_text"][-1]))
 
@@ -248,9 +267,11 @@ class EventHandler(AssistantEventHandler):
         st.session_state.text_boxes.append(st.empty())
         st.session_state.assistant_text.append("")
         
-        # Display image in textbox
+        # # Display image in textbox
         image_html = f'<p align="center"><img src="data:image/png;base64,{data_url}" width=600></p>'
         st.session_state.text_boxes[-1].html(image_html)
+
+        # st.session_state.text_boxes[-1].image(f"images/{img_name}.png", width=600)
 
         # Create new text box
         st.session_state.assistant_text.append("")
@@ -266,9 +287,9 @@ class EventHandler(AssistantEventHandler):
         st.error("The api call timed out.")
         st.stop()
 
-    def on_exception(self, exception: Exception):
-        """
-        Handler for when an exception occurs
-        """
-        st.error(f"An error occurred: {exception}")
-        st.stop()
+    # def on_exception(self, exception: Exception):
+    #     """
+    #     Handler for when an exception occurs
+    #     """
+    #     st.error(f"An error occurred: {exception}")
+    #     st.stop()
