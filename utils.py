@@ -106,7 +106,10 @@ def update_google_sheet(demo_type, data_type, data_id):
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     worksheet.append_row([current_time, demo_type, data_type, data_id])
 
-def remove_links(text):
+def remove_links(text: str) -> str:
+    """
+    Remove links from the text
+    """
     # Pattern to match Markdown links: [Link text](URL)
     link_pattern = r'\[.*?\]\(.*?\)'
     # Pattern to match lines starting with list item indicators (unordered or ordered)
