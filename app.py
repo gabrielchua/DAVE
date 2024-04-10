@@ -1,25 +1,29 @@
 """
 app.py
 """
-import io
 import os
 
 import streamlit as st
-import pandas as pd
 from openai import OpenAI
 from utils import (
-    EventHandler, 
-    delete_uploaded_files,
+    delete_files,
     delete_thread,
-    is_nsfw,
+    EventHandler,
+    initialise_session_state,
     moderation_endpoint,
     render_custom_css,
-    update_google_sheet
+    render_download_files,
+    retrieve_messages_from_thread,
+    retrieve_assistant_created_files
     )
 
+# Get secrets
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", st.secrets["OPENAI_API_KEY"])
+ASSISTANT_ID = os.environ.get("OPENAI_ASSISTANT_ID", st.secrets["OPENAI_ASSISTANT_ID"])
+
 # Initialise the OpenAI client, and retrieve the assistant
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-assistant = client.beta.assistants.retrieve(st.secrets["ASSISTANT_ID"])
+client = OpenAI(api_key=OPENAI_API_KEY)
+assistant = client.beta.assistants.retrieve(ASSISTANT_ID)
 
 st.set_page_config(page_title="DAVE",
                    page_icon="🕵️")
@@ -28,23 +32,7 @@ st.set_page_config(page_title="DAVE",
 render_custom_css()
 
 # Initialise session state variables
-if "file" not in st.session_state:
-    st.session_state.file = None
-
-if "file_uploaded" not in st.session_state:
-    st.session_state.file_uploaded = False
-
-if "assistant_text" not in st.session_state:
-    st.session_state.assistant_text = [""]
-
-if "code_input" not in st.session_state:
-    st.session_state.code_input = []
-
-if "code_output" not in st.session_state:
-    st.session_state.code_output = []
-
-if "disabled" not in st.session_state:
-    st.session_state.disabled = False
+initialise_session_state()
 
 # UI
 st.subheader("🔮 DAVE: Data Analysis & Visualisation Engine")
@@ -55,9 +43,9 @@ qn_btn = st.empty()
 
 # File Upload
 if not st.session_state["file_uploaded"]:
-    st.session_state["files"] = file_upload_box.file_uploader("Please upload your dataset(s).", 
-                                                             accept_multiple_files=True,
-                                                             type=["csv"])
+    st.session_state["files"] = file_upload_box.file_uploader("Please upload your dataset(s)",
+                                                              accept_multiple_files=True,
+                                                              type=["csv"])
 
     if upload_btn.button("Upload"):
 
@@ -72,38 +60,42 @@ if not st.session_state["file_uploaded"]:
 
             # Append the file ID to the list
             st.session_state["file_id"].append(oai_file.id)
-            # Log
             print(f"Uploaded new file: \t {oai_file.id}")
-            # Update the Google Sheet to faciliate manual deletion
-            update_google_sheet("public", "file", oai_file.id)
 
-        st.toast("File uploaded successfully", icon="✨")
+        st.toast("File(s) uploaded successfully", icon="🚀")
         st.session_state["file_uploaded"] = True
         file_upload_box.empty()
         upload_btn.empty()
+        # The re-run is to trigger the next section of the code
         st.rerun()
 
 if st.session_state["file_uploaded"]:
-    question = text_box.text_area("Ask a question", disabled=st.session_state.disabled)
+    
+    question = text_box.text_area("Ask a question")
+
+    # If the button is clicked
     if qn_btn.button("Ask DAVE"):
 
+        # Clear the UI
         text_box.empty()
         qn_btn.empty()
 
+        # Check if the question is flagged
         if moderation_endpoint(question):
+            # if flagged, return a warning message, delete the files and stop the app
             st.warning("Your question has been flagged. Refresh page to try again.")
             delete_uploaded_files()
             st.stop()
 
+        # If there is no text boxes in the session state, create an empty list 
+        # This list will store the text boxes created by the Assistant
         if "text_boxes" not in st.session_state:
             st.session_state.text_boxes = []
 
-        # Create a new thread
+        # Create a new thread if not already created
         if "thread_id" not in st.session_state:
             thread = client.beta.threads.create()
             st.session_state.thread_id = thread.id
-            # Update the Google Sheet to faciliate manual deletion
-            update_google_sheet("public", "thread", thread.id)
             print(f"Created new thread: \t {st.session_state.thread_id}")
 
         # Attach the file(s) to the thread
@@ -121,64 +113,31 @@ if st.session_state["file_uploaded"]:
             content=question,
         )
 
+        # Create a new text box to display the question
         st.session_state.text_boxes.append(st.empty())
         st.session_state.text_boxes[-1].success(f"**> 🤔 User:** {question}")
 
+        # Run the Assistant and the EventHandler handles the stream
         with client.beta.threads.runs.stream(thread_id=st.session_state.thread_id,
                                              assistant_id=assistant.id,
                                              event_handler=EventHandler(),
-                                             temperature=0) as stream:
+                                             temperature=0.2) as stream:
             stream.until_done()
             st.toast("DAVE has finished analysing the data", icon="🕵️")
 
+        # Prepare the files for download
         with st.spinner("Preparing the files for download..."):
             # Retrieve the messages by the Assistant from the thread
-            thread_messages = client.beta.threads.messages.list(st.session_state.thread_id)
-            assistant_messages = []
-            for message in thread_messages.data:
-                if message.role == "assistant":
-                    assistant_messages.append(message.id)
-
+            assistant_messages = retrieve_messages_from_thread(st.session_state.thread_id)
             # For each assistant message, retrieve the file(s) created by the Assistant
-            assistant_created_file_ids = []
-            for message_id in assistant_messages:
-                message_files = client.beta.threads.messages.files.list(
-                    thread_id=st.session_state.thread_id,
-                    message_id=message_id)
-                for file in message_files.data:
-                    assistant_created_file_ids.append(file.id)
-            
+            st.session_state.assistant_created_file_ids = retrieve_assistant_created_files(assistant_messages)
             # Download these files
-            if len(assistant_created_file_ids) > 0:
-                st.markdown("### 📂  **Downloadable Files**")
-                for file_id in assistant_created_file_ids:
-                    file_data = client.files.content(file_id)
-                    file = file_data.read()
-                    file_name = client.files.retrieve(file_id).filename
-                    file_name = os.path.basename(file_name)
-
-                    # if file_name is `.csv`
-                    if file_name.endswith(".csv"):
-                        try:
-                            with open(f"app/static/{file_name}", "wb") as f:
-                                f.write(file)
-                        except:
-                            csv_file = io.StringIO(file)            
-                            df = pd.read_csv(csv_file)
-                            df.to_csv(f"app/static/{file_name}", index=False)
-                    elif file_name.endswith(".png"):
-                        with open(f"app/static/{file_name}", "wb") as f:
-                            f.write(file)
-                    st.write(f"- [{file_name}](app/static/{file_name})")
+            st.session_state.download_files, st.session_state.download_file_names = render_download_files(st.session_state.assistant_created_file_ids)
 
         # Clean-up
         # Delete the file(s) uploaded
-        delete_uploaded_files()
-        
+        delete_files(st.session_state.file_id)
         # Delete the file(s) created by the Assistant
-        for file_id in assistant_created_file_ids:
-            client.files.delete(file_id)
-            print(f"Deleted assistant-created file: \t {file_id}")
-            
+        delete_files(st.session_state.assistant_created_file_ids)
         # Delete the thread
         delete_thread(st.session_state.thread_id)

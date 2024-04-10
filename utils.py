@@ -1,22 +1,28 @@
 """
 utils.py
 """
+import os
 import base64
-import json
+import hmac
 import re
-from datetime import datetime
 from PIL import ImageFile
+from typing import Tuple
 from typing_extensions import override
 
-import gspread
 import streamlit as st
-from google.oauth2 import service_account
 from openai import (
     OpenAI,
     AssistantEventHandler
     )
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Get secrets
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", st.secrets["OPENAI_API_KEY"])
+
+# Config
+LAST_UPDATE_DATE = "2024-04-08"
+
+# Initialise the OpenAI client
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def render_custom_css() -> None:
     """
@@ -36,16 +42,46 @@ def render_custom_css() -> None:
             </style>
             """)
 
+def initialise_session_state():
+    """
+    Initialise session state variables
+    """
+    if "file" not in st.session_state:
+        st.session_state.file = None
+
+    if "assistant_text" not in st.session_state:
+        st.session_state.assistant_text = [""]
+
+    for session_state_var in ["file_uploaded", "read_terms"]:
+        if session_state_var not in st.session_state:
+            st.session_state[session_state_var] = False
+
+    for session_state_var in ["code_input", "code_output"]:
+        if session_state_var not in st.session_state:
+            st.session_state[session_state_var] = []
+
 def moderation_endpoint(text) -> bool:
     """
-    Returns true if the text is NSFW
+    Checks if the text is triggers the moderation endpoint
+
+    Args:
+    - text (str): The text to check
+
+    Returns:
+    - bool: True if the text is flagged
     """
     response = client.moderations.create(input=text)
     return response.results[0].flagged
 
 def is_nsfw(text) -> bool:
     """
-    Returns true if the text is not a question
+    Checks if the text is nsfw.
+
+    Args:
+    - text (str): The text to check
+
+    Returns:
+    - bool: True if the text is nsfw
     """
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -62,7 +98,13 @@ def is_nsfw(text) -> bool:
 
 def is_not_question(text) -> bool:
     """
-    Returns true if the text is not a question
+    Checks if the text is not a question
+
+    Args:
+    - text (str): The text to check
+
+    Returns:
+    - bool: True if the text is not a question
     """
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -77,38 +119,36 @@ def is_not_question(text) -> bool:
     output = response.choices[0].message.content
     return bool(output)
 
-def delete_uploaded_files():
-    """ Delete the file(s) uploaded """
-    for file_id in st.session_state.file_id:
-        client.files.delete(file_id)
-        print(f"Deleted uploaded file: \t {file_id}")
-
-def delete_thread(thread_id):
-    """ Delete the thread """
-    client.beta.threads.delete(thread_id)
-    print(f"Deleted thread: \t {thread_id}")
-
-def update_google_sheet(demo_type, data_type, data_id):
-    """ 
-    Add the data to a Google Sheet 
-    
-    If the demo is interactive, the thread_id and file_id will not be deleted automatically. 
-    Hence, the thread_id and file_id is stored to facilitate the scheduled deletion of the thread and files in the backend.
-
+def delete_files(file_id_list: list[str]) -> None:
     """
-    credentials = service_account.Credentials.from_service_account_info(
-        json.loads(st.secrets["GCP_SERVICE_ACCOUNT"]),
-        scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        )
-    gc = gspread.authorize(credentials)
-    sh = gc.open_by_url(st.secrets["PRIVATE_GSHEETS_URL"])
-    worksheet = sh.get_worksheet(0) # Assuming you want to write to the first sheet
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    worksheet.append_row([current_time, demo_type, data_type, data_id])
+    Delete the file(s) uploaded
+    
+    Args:
+    - file_id_list (list[str]): List of file ids to delete
+    """
+    for file_id in file_id_list:
+        client.files.delete(file_id)
+        print(f"Deleted uploaded file {file_id}")
+
+def delete_thread(thread_id) -> None:
+    """
+    Delete the thread
+    
+    Args:
+    - thread_id (str): The id of the thread to delete
+    """
+    client.beta.threads.delete(thread_id)
+    print(f"Deleted thread {thread_id}")
 
 def remove_links(text: str) -> str:
     """
     Remove links from the text
+
+    Args:
+    - text (str): The text to remove markdown links from
+
+    Returns:
+    - str: The text with the links removed
     """
     # Pattern to match Markdown links: [Link text](URL)
     link_pattern = r'\[.*?\]\(.*?\)'
@@ -116,12 +156,106 @@ def remove_links(text: str) -> str:
     list_item_pattern = r'^(\s*(\*|-|\d+\.)\s).*'
     # Combine both patterns to identify list items containing links
     combined_pattern = rf'({list_item_pattern}.*?{link_pattern}.*?$)|{link_pattern}'
-    
     # Replace the matching content with an empty string
     # The MULTILINE flag is used to allow ^ to match the start of each line
     cleaned_text = re.sub(combined_pattern, '', text, flags=re.MULTILINE)
-    
     return cleaned_text
+
+def retrieve_messages_from_thread(thread_id: str) -> list[str]:
+    """
+    Retrieve messages from the thread
+
+    Args:
+    - thread_id (str): The id of the thread
+
+    Returns:
+    - list[str]: List of assistant messages
+    """
+    thread_messages = client.beta.threads.messages.list(thread_id)
+    assistant_messages = []
+    for message in thread_messages.data:
+        if message.role == "assistant":
+            assistant_messages.append(message.id)
+    return assistant_messages
+
+def retrieve_assistant_created_files(message_list: list[str]) -> list[str]:
+    """
+    Retrieve the assistant-created files
+
+    Args:
+    - message_list (list[str]): List of assistant messages
+
+    Returns:
+    - list[str]: List of assistant-created file ids
+    """
+    assistant_created_file_ids = []
+    for message_id in message_list:
+        message_files = client.beta.threads.messages.files.list(
+            thread_id=st.session_state.thread_id,
+            message_id=message_id)
+        for file in message_files.data:
+            assistant_created_file_ids.append(file.id)
+    return assistant_created_file_ids
+
+@st.experimental_fragment
+def render_download_files(file_id_list: list[str]) -> Tuple[list[bytes], list[str]]:
+    """
+    Download the files, renders a download button for each file, and returns the downloaded files
+
+    Args:
+    - file_id_list (list[str]): List of file ids to download
+
+    Returns:
+    - downloaded_files (list[object]): List of downloaded files
+    - file_names (list[str]): List of file names
+    """
+    downloaded_files = []
+    file_names = []
+    if len(file_id_list) > 0:
+        st.markdown("### 📂  **Downloadable Files**")
+        for file_id_num, file_id in enumerate(file_id_list):
+            try: 
+                file_data = client.files.content(file_id)
+                file = file_data.read()
+                file_name = client.files.retrieve(file_id).filename
+                file_name = os.path.basename(file_name)
+
+                # # if file_name is `.csv`
+                # if file_name.endswith(".csv"):
+                #     try:
+                #         with open(f"static/{file_name}", "wb") as f:
+                #             f.write(file)
+                #     except:
+                #         # Convert bytes to string
+                #         csv_str = file.decode('utf-8')
+                #         csv_file = io.StringIO(csv_str)            
+                #         df = pd.read_csv(csv_file)
+                #         df.to_csv(f"static/{file_name}", index=False)
+                # elif file_name.endswith(".png"):
+                #     with open(f"static/{file_name}", "wb") as f:
+                #         f.write(file)
+                # st.write(f"- [{file_name}](static/{file_name})")
+
+                # Store the downloaded file and its name
+                downloaded_files.append(file)
+                file_names.append(file_name)
+
+                # Display the download button
+                st.download_button(label=f"{file_name}",
+                                    data=file,
+                                    file_name=file_name,
+                                    mime="text/csv")
+                                    
+            except: 
+                # Display the download button
+                file = st.session_state.download_files[file_id_num]
+                file_name = st.session_state.download_file_names[file_id_num]
+                st.download_button(label=f"{file_name}",
+                                    data=file,
+                                    file_name=file_name,
+                                    mime="text/csv")
+
+    return downloaded_files, file_names
 
 class EventHandler(AssistantEventHandler):
     """
@@ -143,8 +277,6 @@ class EventHandler(AssistantEventHandler):
 
         # Create a new text box
         st.session_state.text_boxes.append(st.empty())
-        # Retrieve the newly created text box and empty it
-        st.session_state.text_boxes[-1].empty()
         # Insert the text into the last element in assistant text list
         st.session_state.assistant_text[-1] += "**> 🕵️ DAVE:** \n\n "
         # Remove links from the text
