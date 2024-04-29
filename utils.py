@@ -14,6 +14,8 @@ from openai import (
     OpenAI,
     AssistantEventHandler
     )
+from openai.types.beta.threads import Text, TextDelta
+from openai.types.beta.threads.runs import ToolCall, ToolCallDelta
 
 # Get secrets
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", st.secrets["OPENAI_API_KEY"])
@@ -190,11 +192,22 @@ def retrieve_assistant_created_files(message_list: list[str]) -> list[str]:
     """
     assistant_created_file_ids = []
     for message_id in message_list:
-        message_files = client.beta.threads.messages.files.list(
+        message = client.beta.threads.messages.retrieve(
+            message_id=message_id,
             thread_id=st.session_state.thread_id,
-            message_id=message_id)
-        for file in message_files.data:
-            assistant_created_file_ids.append(file.id)
+        )
+
+        # Retrieve the attachments from the message, and the file ids from the attachments
+        created_file_id = [file.file_id for file in message.attachments]
+        for file_id in created_file_id:
+            assistant_created_file_ids.append(file_id)        
+
+        # message_files = client.beta.threads.messages.files.list(
+        #     thread_id=st.session_state.thread_id,
+        #     message_id=message_id)
+        # for file in message_files.data:
+        #     assistant_created_file_ids.append(file.id)
+
     return assistant_created_file_ids
 
 @st.experimental_fragment
@@ -254,15 +267,16 @@ def render_download_files(file_id_list: list[str]) -> Tuple[list[bytes], list[st
                                     data=file,
                                     file_name=file_name,
                                     mime="text/csv")
-
+    
     return downloaded_files, file_names
+    
 
 class EventHandler(AssistantEventHandler):
     """
     Event handler for the assistant stream
     """
     @override
-    def on_text_created(self, text) -> None:
+    def on_text_created(self, text: Text) -> None:
         """
         Handler for when a text is created
         """
@@ -285,7 +299,7 @@ class EventHandler(AssistantEventHandler):
         st.session_state.text_boxes[-1].info("".join(st.session_state["assistant_text"][-1]))
       
     @override
-    def on_text_delta(self, delta, snapshot):
+    def on_text_delta(self, delta: TextDelta, snapshot: Text):
         """
         Handler for when a text delta is created
         """
@@ -299,7 +313,7 @@ class EventHandler(AssistantEventHandler):
         # Re-display the full text in the latest text box
         st.session_state.text_boxes[-1].info("".join(st.session_state["assistant_text"][-1]))
 
-    def on_text_done(self, text):
+    def on_text_done(self, text: Text):
         """
         Handler for when text is done
         """
@@ -307,7 +321,7 @@ class EventHandler(AssistantEventHandler):
         st.session_state.text_boxes.append(st.empty())
         st.session_state.assistant_text.append("")
 
-    def on_tool_call_created(self, tool_call):
+    def on_tool_call_created(self, tool_call: ToolCall):
         """
         Handler for when a tool call is created
         """
@@ -316,11 +330,11 @@ class EventHandler(AssistantEventHandler):
         # Create a new element in the code input list
         st.session_state.code_input.append("")
           
-    def on_tool_call_delta(self, delta, snapshot):
+    def on_tool_call_delta(self, delta: ToolCallDelta, snapshot: ToolCallDelta):
         """
         Handler for when a tool call delta is created
         """
-        if delta.type == 'code_interpreter':
+        if delta.type == "code_interpreter" and delta.code_interpreter:
 
             # Code writen by the assistant to be executed
             if delta.code_interpreter.input:
@@ -366,7 +380,7 @@ class EventHandler(AssistantEventHandler):
                         # Display the code output
                         st.session_state.text_boxes[-1].code(st.session_state.code_output[-1])
 
-    def on_tool_call_done(self, tool_call):
+    def on_tool_call_done(self, tool_call: ToolCall):
         """
         Handler for when a tool call is done
         """

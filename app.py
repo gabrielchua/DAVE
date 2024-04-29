@@ -5,6 +5,7 @@ import os
 
 import streamlit as st
 from openai import OpenAI
+from openai.types.beta.thread_create_params import CodeInterpreterToolParam
 from utils import (
     delete_files,
     delete_thread,
@@ -98,16 +99,14 @@ if st.session_state["file_uploaded"]:
             st.session_state.thread_id = thread.id
             print(f"Created new thread: \t {st.session_state.thread_id}")
 
-        # Attach the file(s) to the thread
-        message = client.beta.threads.messages.create(
+        # Update the thread to attach the file(s)
+        client.beta.threads.update(
             thread_id=st.session_state.thread_id,
-            role="user",
-            content="Here is a dataset. Analyse it",
-            file_ids=[file_id for file_id in st.session_state.file_id]
-        )
+            tool_resources={"code_interpreter": {"file_ids": [file_id for file_id in st.session_state.file_id]}}
+            )
 
         # Ask the question
-        message = client.beta.threads.messages.create(
+        client.beta.threads.messages.create(
             thread_id=st.session_state.thread_id,
             role="user",
             content=question,
@@ -120,6 +119,7 @@ if st.session_state["file_uploaded"]:
         # Run the Assistant and the EventHandler handles the stream
         with client.beta.threads.runs.stream(thread_id=st.session_state.thread_id,
                                              assistant_id=assistant.id,
+                                             tool_choice={"type": "code_interpreter"},
                                              event_handler=EventHandler(),
                                              temperature=0.2) as stream:
             stream.until_done()

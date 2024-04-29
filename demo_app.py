@@ -65,18 +65,16 @@ if qn_btn.button("Ask DAVE"):
         st.session_state.thread_id = thread.id
         print(st.session_state.thread_id)
 
-    # Attach the file to the thread
-    message = client.beta.threads.messages.create(
-        thread_id=st.session_state.thread_id,
-        role="user",
-        content="Here is a dataset. Analyse it",
-        file_ids=[st.secrets["FILE_ID"]]
-    )
+    # Update the thread to attach the file
+    client.beta.threads.update(
+            thread_id=st.session_state.thread_id,
+            tool_resources={"code_interpreter": {"file_ids": [st.secrets["FILE_ID"]]}}
+            )
 
     if "text_boxes" not in st.session_state:
         st.session_state.text_boxes = []
-
-    message = client.beta.threads.messages.create(
+        
+    client.beta.threads.messages.create(
         thread_id=st.session_state.thread_id,
         role="user",
         content=question

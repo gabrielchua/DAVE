@@ -3,5 +3,5 @@ google-auth==2.23.2
 google-auth-oauthlib==1.1.0
 googleapis-common-protos==1.62.0
 gspread==5.11.2
-openai==1.16.2
+openai==1.23.6
 streamlit==1.33.0
