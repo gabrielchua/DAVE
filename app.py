@@ -121,7 +121,7 @@ if st.session_state["file_uploaded"]:
                                              assistant_id=assistant.id,
                                              tool_choice={"type": "code_interpreter"},
                                              event_handler=EventHandler(),
-                                             temperature=0.2) as stream:
+                                             temperature=0) as stream:
             stream.until_done()
             st.toast("DAVE has finished analysing the data", icon="🕵️")
 
