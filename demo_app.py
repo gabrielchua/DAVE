@@ -90,7 +90,7 @@ if qn_btn.button("Ask DAVE"):
 
     with client.beta.threads.runs.stream(thread_id=st.session_state.thread_id,
                                           assistant_id=assistant.id,
-                                          tool_choice={"type": "file_search"},
+                                          tool_choice={"type": "code_interpreter"},
                                           event_handler=EventHandler(),
                                           temperature=0) as stream:
         stream.until_done()
