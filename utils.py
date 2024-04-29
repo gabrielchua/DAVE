@@ -130,7 +130,7 @@ def delete_files(file_id_list: list[str]) -> None:
     """
     for file_id in file_id_list:
         client.files.delete(file_id)
-        print(f"Deleted uploaded file {file_id}")
+        print(f"Deleted file: \t {file_id}")
 
 def delete_thread(thread_id) -> None:
     """
@@ -140,7 +140,7 @@ def delete_thread(thread_id) -> None:
     - thread_id (str): The id of the thread to delete
     """
     client.beta.threads.delete(thread_id)
-    print(f"Deleted thread {thread_id}")
+    print(f"Deleted thread: \t {thread_id}")
 
 def remove_links(text: str) -> str:
     """

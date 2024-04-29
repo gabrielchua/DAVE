@@ -5,11 +5,16 @@ import os
 import streamlit as st
 from openai import OpenAI
 from utils import (
+    delete_files,
+    delete_thread,
     EventHandler,
     moderation_endpoint,
     is_nsfw,
     # is_not_question,
-    render_custom_css
+    render_custom_css,
+    render_download_files,
+    retrieve_messages_from_thread,
+    retrieve_assistant_created_files
     )
 
 # Initialise the OpenAI client, and retrieve the assistant
@@ -85,43 +90,23 @@ if qn_btn.button("Ask DAVE"):
 
     with client.beta.threads.runs.stream(thread_id=st.session_state.thread_id,
                                           assistant_id=assistant.id,
+                                          tool_choice={"type": "file_search"},
                                           event_handler=EventHandler(),
                                           temperature=0) as stream:
         stream.until_done()
         st.toast("DAVE has finished analysing the data", icon="🕵️")
 
-    # Retrieve the messages by the Assistant from the thread
-    thread_messages = client.beta.threads.messages.list(st.session_state.thread_id)
-    assistant_messages = []
-    for message in thread_messages.data:
-        if message.role == "assistant":
-            assistant_messages.append(message.id)
-
-    # For each assistant message, retrieve the file(s) created by the Assistant
-    assistant_created_file_ids = []
-    for message_id in assistant_messages:
-        message_files = client.beta.threads.messages.files.list(
-            thread_id=st.session_state.thread_id,
-            message_id=message_id)
-        for file in message_files.data:
-            assistant_created_file_ids.append(file.id)
-    
-    # Download these files
-    for file_id in assistant_created_file_ids:
-        content = client.files.content(file_id)
-        file_name = client.files.retrieve(file_id).filename
-        file_name = os.path.basename(file_path)
-        st.download_button(label=f"Download `{file_name}`",
-                        data=content,
-                        file_name=file_name, 
-                        use_container_width=True)
+    # Prepare the files for download
+    with st.spinner("Preparing the files for download..."):
+        # Retrieve the messages by the Assistant from the thread
+        assistant_messages = retrieve_messages_from_thread(st.session_state.thread_id)
+        # For each assistant message, retrieve the file(s) created by the Assistant
+        st.session_state.assistant_created_file_ids = retrieve_assistant_created_files(assistant_messages)
+        # Download these files
+        st.session_state.download_files, st.session_state.download_file_names = render_download_files(st.session_state.assistant_created_file_ids)
 
     # Clean-up
     # Delete the file(s) created by the Assistant
-    for file_id in assistant_created_file_ids:
-        client.files.delete(file_id)
-        print(f"Deleted assistant-created file {file_id}")
-        
+    delete_files(st.session_state.assistant_created_file_ids)
     # Delete the thread
-    client.beta.threads.delete(st.session_state.thread_id)
-    print(f"Deleted thread {st.session_state.thread_id}")
+    delete_thread(st.session_state.thread_id)

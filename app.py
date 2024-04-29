@@ -85,7 +85,7 @@ if st.session_state["file_uploaded"]:
         if moderation_endpoint(question):
             # if flagged, return a warning message, delete the files and stop the app
             st.warning("Your question has been flagged. Refresh page to try again.")
-            delete_uploaded_files()
+            delete_files(st.session_state.file_id)
             st.stop()
 
         # If there is no text boxes in the session state, create an empty list 
